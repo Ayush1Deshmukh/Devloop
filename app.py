@@ -1,6 +1,20 @@
 import streamlit as st
+import os
+import sys
+
+# --- CRITICAL FIX: Load API Key from Secrets to Environment ---
+# We must do this BEFORE importing logic.py, or the app will crash.
+try:
+    if "GOOGLE_API_KEY" in st.secrets:
+        os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+except FileNotFoundError:
+    # This handles the case where you are running locally without secrets.toml
+    pass
+
+# --- NOW imports can happen safely ---
 import streamlit.components.v1 as components
 import time
+import base64
 from logic import app, write_file
 
 # --- 1. CONFIGURATION ---
