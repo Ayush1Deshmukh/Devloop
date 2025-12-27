@@ -142,7 +142,7 @@ if "GOOGLE_API_KEY" not in os.environ:
 # --- CONFIG ---
 # Now it is safe to initialize Gemini
 try:
-    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
 except Exception as e:
     # Fallback if key is still missing (prevents import crash)
     llm = None
