@@ -1,7 +1,9 @@
 import subprocess
+import shutil
+import sys
 
-# The name of our running Docker container
-CONTAINER_NAME = "devloop-runner"
+# Check if Docker is available on the system
+HAS_DOCKER = shutil.which("docker") is not None
 
 def write_file(filename: str, content: str):
     """
@@ -11,32 +13,34 @@ def write_file(filename: str, content: str):
     """
     with open(filename, "w") as f:
         f.write(content)
-    return f"Successfully wrote to {filename}"
+    return f"Saved {filename}"
 
 def run_test(test_filename: str):
     """
-    Executes pytest INSIDE the Docker container.
+    Smart Runner: Uses Docker if available (Local),
+    falls back to direct execution if not (Cloud Demo).
     """
-    # This command runs pytest inside the 'devloop-runner' container
-    cmd = ["docker", "exec", CONTAINER_NAME, "pytest", test_filename]
+    if HAS_DOCKER:
+        # Secure Local Mode
+        cmd = ["docker", "exec", "devloop-runner", "pytest", test_filename]
+    else:
+        # Cloud Demo Mode (Runs directly on Streamlit Cloud VM)
+        cmd = [sys.executable, "-m", "pytest", test_filename]
     
     try:
-        # Run the docker command
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=10 
+            timeout=10
         )
         
-        # Docker exit code 0 means tests passed
-        if result.returncode == 0:
-            return {"status": "success", "output": result.stdout}
-        else:
-            # Tests failed. Return stdout + stderr so the AI knows WHY.
-            return {"status": "failed", "output": result.stdout + "\n" + result.stderr}
+        status = "success" if result.returncode == 0 else "failed"
+        output = result.stdout
+        if result.stderr:
+            output += f"\nSTDERR:\n{result.stderr}"
             
-    except subprocess.TimeoutExpired:
-        return {"status": "error", "output": "Test Execution Timed Out (Possible Infinite Loop)"}
+        return {"status": status, "output": output}
+            
     except Exception as e:
         return {"status": "error", "output": str(e)}
