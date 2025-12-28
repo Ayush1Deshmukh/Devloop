@@ -121,30 +121,25 @@
 import os
 import subprocess
 from typing import TypedDict
-import streamlit as st  # <--- NEW IMPORT
+import streamlit as st
 from langgraph.graph import StateGraph, END
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from tools import write_file, run_test
 
-# --- CRITICAL FIX: LOAD API KEY INSIDE LOGIC ---
-# This ensures the key exists BEFORE we initialize the LLM.
+# --- 1. KEY LOADING ---
 if "GOOGLE_API_KEY" not in os.environ:
     try:
         if "GOOGLE_API_KEY" in st.secrets:
             os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-        else:
-            # If running locally and key is missing, this stops the crash until runtime
-            pass 
     except FileNotFoundError:
         pass
 
-# --- CONFIG ---
-# Now it is safe to initialize Gemini
+# --- 2. CONFIG ---
 try:
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+    # UPDATED: Using the alias that works for your account tier
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest", temperature=0)
 except Exception as e:
-    # Fallback if key is still missing (prevents import crash)
     llm = None
     print(f"⚠️ LLM Init Failed: {e}")
 
@@ -158,73 +153,78 @@ class DevState(TypedDict):
     iterations: int
     logs: list
 
-# --- HELPER ---
+# --- 3. HELPERS ---
 def clean_content(response):
+    """Robustly handle Gemini's list or string output."""
     content = response.content
-    # Robust parsing for Gemini's varied output formats
     if isinstance(content, list):
         text_parts = []
         for part in content:
             if isinstance(part, str): text_parts.append(part)
             elif isinstance(part, dict): text_parts.append(part.get("text", str(part)))
         content = "".join(text_parts)
-    
     return str(content).replace("```python", "").replace("```", "").strip()
 
 def run_security_scan(filename):
-    """Runs 'bandit' inside Docker or System (Cloud Fallback)."""
-    # Check if we are running in a constrained cloud env without Docker
-    # We skip actual bandit scan on Streamlit Cloud to prevent crashes, 
-    # unless you add bandit to packages.txt. 
-    # For now, we simulate a 'Clean' scan if bandit command fails.
+    """Runs 'bandit' security scan."""
     try:
+        # Check if bandit is installed
         cmd = ["bandit", "-r", filename, "-f", "txt"]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        return result.stdout + "\n" + result.stderr
+        
+        # Bandit returns exit code 1 if issues found, 0 if clean
+        if result.returncode == 0:
+            return "✅ No issues identified."
+        else:
+            return f"⚠️ Issues Found:\n{result.stdout}"
+            
     except FileNotFoundError:
-        return "⚠️ Security Scanner (Bandit) not found in environment. Skipping scan."
+        return "⚠️ Security Scanner (Bandit) not found. Skipping."
 
-# --- NODES ---
+# --- 4. NODES ---
 
 def architect_node(state: DevState):
     if not llm: return {"logs": ["❌ API Key Missing. Check Secrets."]}
     
     log = "🏗️ [ARCHITECT] Designing tests..."
     prompt = f"Write a pytest unit test for: '{state['objective']}'. File: 'test_solution.py'. Import 'solution'. ONLY code."
-    res = clean_content(llm.invoke([HumanMessage(content=prompt)]))
-    write_file("test_solution.py", res)
-    return {"test_content": res, "iterations": 0, "logs": [log]}
+    
+    try:
+        res = clean_content(llm.invoke([HumanMessage(content=prompt)]))
+        write_file("test_solution.py", res)
+        return {"test_content": res, "iterations": 0, "logs": [log]}
+    except Exception as e:
+         return {"logs": [f"❌ Architect Error: {str(e)}"]}
 
 def developer_node(state: DevState):
-    if not llm: return {"logs": ["❌ API Key Missing."]}
-
     iteration_label = state.get("iterations", 0) + 1
     log = f"👨‍💻 [DEVELOPER] Coding (Cycle {iteration_label})..."
     
     context = ""
+    # Add feedback from Tests
     if state.get("test_output"):
         context += f"\nTEST FAILURES:\n{state['test_output']}"
-    if state.get("security_report") and "No issues identified" not in state.get("security_report", ""):
-        context += f"\nSECURITY VULNERABILITIES:\n{state['security_report']}"
+    # Add feedback from Security Audit
+    sec_rep = state.get("security_report", "")
+    if sec_rep and "Issues Found" in sec_rep:
+        context += f"\nSECURITY VULNERABILITIES:\n{sec_rep}"
         
     if context:
         prompt = f"Fix code based on issues:\n{context}\nObjective: {state['objective']}\nONLY python code."
     else:
         prompt = f"Write python code for: '{state['objective']}'. File: 'solution.py'. ONLY python code."
         
-    res = clean_content(llm.invoke([HumanMessage(content=prompt)]))
-    write_file("solution.py", res)
-    return {"code_content": res, "iterations": state["iterations"] + 1, "logs": [log]}
+    try:
+        res = clean_content(llm.invoke([HumanMessage(content=prompt)]))
+        write_file("solution.py", res)
+        return {"code_content": res, "iterations": state["iterations"] + 1, "logs": [log]}
+    except Exception as e:
+        return {"logs": [f"❌ Developer Error: {str(e)}"]}
 
 def security_node(state: DevState):
     log = "🛡️ [SEC-OPS] Scanning for vulnerabilities..."
     report = run_security_scan("solution.py")
-    
-    clean_report = "✅ No Security Issues Found"
-    if "Issue:" in report:
-        clean_report = f"⚠️ VULNERABILITIES FOUND:\n{report}"
-        
-    return {"security_report": clean_report, "logs": [log]}
+    return {"security_report": report, "logs": [log]}
 
 def tester_node(state: DevState):
     log = "⚡ [TESTER] Running Unit Tests..."
@@ -235,12 +235,17 @@ def tester_node(state: DevState):
         
     return {"test_output": result['output'], "status": status, "logs": [log, final_log]}
 
-# --- GRAPH ---
+# --- 5. GRAPH ---
 def router(state: DevState):
-    if state["status"] == "success" and "No issues identified" in state.get("security_report", "No issues identified"):
+    # Exit only if tests passed AND security is clean
+    sec_report = state.get("security_report", "")
+    
+    if state["status"] == "success" and "Issues Found" not in sec_report:
         return "end"
+    
     if state["iterations"] > 5: 
         return "end"
+    
     return "developer"
 
 workflow = StateGraph(DevState)
