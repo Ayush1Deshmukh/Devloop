@@ -2,191 +2,330 @@ import streamlit as st
 import os
 import sys
 
-# --- 1. CRITICAL: LOAD SECRETS BEFORE IMPORTING LOGIC ---
-# We must inject the API key into the environment BEFORE importing logic.py.
-# If we don't, logic.py will crash immediately with "ValidationError".
+# --- 1. SECRETS SETUP ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-        # print("✅ API Key loaded from Streamlit Secrets")
 except FileNotFoundError:
-    pass # Running locally without secrets.toml
+    pass
 
-# --- 2. NOW IT IS SAFE TO IMPORT LOGIC ---
 import streamlit.components.v1 as components
 import time
-from logic import app, write_file
+# Ensure logic.py exists in the same folder!
+from logic import app as logic_app, write_file 
 
-# --- 3. PAGE CONFIGURATION ---
+# --- 2. CONFIG ---
 st.set_page_config(
-    page_title="DevLoop Console",
+    page_title="DevLoop Prime",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- 4. JAVASCRIPT CURSOR TRACKING ---
+# --- 3. JAVASCRIPT: CURSOR TRACKING ---
+# This tracks the mouse and sends coordinates to CSS variables
 components.html(
     """
     <script>
-    document.addEventListener('mousemove', function(e) {
-        let x = e.clientX;
-        let y = e.clientY;
-        window.parent.document.documentElement.style.setProperty('--cursor-x', x + 'px');
-        window.parent.document.documentElement.style.setProperty('--cursor-y', y + 'px');
+    const doc = window.parent.document;
+    doc.addEventListener('mousemove', function(e) {
+        const x = e.clientX;
+        const y = e.clientY;
+        doc.documentElement.style.setProperty('--x', x + 'px');
+        doc.documentElement.style.setProperty('--y', y + 'px');
     });
     </script>
     """,
     height=0, width=0
 )
 
-# --- 5. ADVANCED CSS ---
+# --- 4. CSS: THE VISUAL ENGINE ---
 st.markdown("""
 <style>
-    /* FONTS & VARS */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
-    :root { --cursor-x: 50vw; --cursor-y: 50vh; --primary: #6366f1; --secondary: #a855f7; }
-    
-    .stApp {
-        background-color: #050505;
-        font-family: 'Inter', sans-serif;
-        overflow-x: hidden;
-    }
-    
-    /* BACKGROUND LAYERS */
-    .stApp::before {
-        content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0h-2.828zM0 5.373l.828-.83 1.415 1.415L0 8.2V5.373zm0 48.254l.828.83-1.415 1.415L0 51.8v2.827zm0-11.03l3.657-3.657 1.414 1.414L0 46.143v-2.828zm0-2.828l5.07-5.07 1.415 1.415L0 43.97v-2.828zm60 0l-5.07-5.07-1.415 1.415L60 43.97v-2.828zm0-11.03l-3.657-3.657-1.414 1.414L60 46.143v-2.828zm0 13.858l-.828.83 1.415 1.415L60 51.8v-2.827zm0-48.254l-.828-.83 1.415 1.415L60 8.2V5.373zM51.8 60l2.243-2.243 1.415 1.415L54.627 60h-2.827zM8.2 60L5.96 57.757 4.543 59.172 5.373 60H8.2zM46.143 60l5.07-5.07 1.415 1.415L48.97 60h-2.828zM13.857 60l-5.07-5.07-1.415 1.415L11.03 60h2.827z' fill='%232a2a2a' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
-        opacity: 0.5; z-index: 0;
-    }
-    .cursor-glow {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: radial-gradient(600px circle at var(--cursor-x) var(--cursor-y), rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1), transparent 40%);
-        z-index: 2; pointer-events: none;
+    /* IMPORTS */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap');
+
+    /* VARS */
+    :root {
+        --primary: #6366f1;
+        --secondary: #ec4899;
+        --bg-deep: #050505;
+        --glass: rgba(20, 20, 25, 0.7);
+        --border: rgba(255, 255, 255, 0.08);
     }
 
-    /* GLASSMORPHISM UI */
-    .glass {
-        background: rgba(24, 24, 27, 0.7); backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08); z-index: 10; position: relative;
+    /* GLOBAL RESET */
+    .stApp {
+        background-color: var(--bg-deep);
+        font-family: 'Inter', sans-serif;
     }
-    .navbar { padding: 1rem 1.5rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-    .stat-card { padding: 1.25rem; border-radius: 12px; transition: all 0.3s; }
-    .stat-card:hover { transform: translateY(-3px); border-color: var(--primary); }
-    .stat-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.5rem; color: white; }
+
+    /* --- BACKGROUND EFFECTS --- */
     
-    /* TERMINAL */
-    .terminal { background: #09090b; border-radius: 10px; border: 1px solid #27272a; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-    .terminal-bar { background: #18181b; padding: 8px 12px; display: flex; gap: 8px; border-bottom: 1px solid #27272a; }
-    .logs-area { padding: 16px; height: 450px; overflow-y: auto; color: #22c55e; font-size: 0.85rem; }
-    .log-entry { margin-bottom: 6px; display: flex; gap: 12px; }
+    /* 1. Grid Texture */
+    .stApp::before {
+        content: ""; position: fixed; inset: 0;
+        background-image: radial-gradient(#333 1px, transparent 1px);
+        background-size: 40px 40px;
+        opacity: 0.15; z-index: 0; pointer-events: none;
+    }
+
+    /* 2. Cursor Spotlight (Follows Mouse) */
+    .stApp::after {
+        content: ""; position: fixed; inset: 0;
+        background: radial-gradient(600px circle at var(--x) var(--y), rgba(99, 102, 241, 0.1), transparent 40%);
+        z-index: 0; pointer-events: none;
+    }
+
+    /* 3. Floating Nebulas (Continuous Animation) */
+    .nebula {
+        position: fixed; width: 500px; height: 500px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        filter: blur(120px); opacity: 0.15; border-radius: 50%;
+        animation: float 20s infinite alternate; z-index: 0; pointer-events: none;
+    }
+    .nebula:nth-child(1) { top: -10%; left: -10%; animation-delay: 0s; }
+    .nebula:nth-child(2) { bottom: -10%; right: -10%; animation-delay: -10s; background: linear-gradient(135deg, #0ea5e9, #8b5cf6); }
+
+    @keyframes float {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(50px, 50px) scale(1.1); }
+    }
+
+    /* --- GLASS UI COMPONENTS --- */
     
-    /* UTILS */
-    #MainMenu, footer, header {visibility: hidden;}
-    .block-container { padding-top: 2rem; padding-bottom: 4rem; }
-    .stTextArea textarea { background: rgba(24, 24, 27, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; }
-    div[data-testid="stButton"] > button:first-child { background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; font-weight: 600; padding: 0.75rem 1.5rem; }
+    .glass-card {
+        background: var(--glass);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+        position: relative; overflow: hidden;
+    }
+    
+    .glass-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(99, 102, 241, 0.3);
+        box-shadow: 0 10px 40px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Navbar Spec */
+    .navbar {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 30px; padding: 16px 24px;
+    }
+
+    /* --- LOADING GLOW EFFECT --- */
+    @keyframes pulse-border {
+        0% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+        70% { border-color: rgba(99, 102, 241, 0.8); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+        100% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+    }
+
+    .loading-active {
+        animation: pulse-border 2s infinite;
+    }
+
+    /* --- TERMINAL STYLING --- */
+    .terminal {
+        background: #09090b; border: 1px solid #27272a; border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace; height: 100%;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+    .terminal-header {
+        background: #18181b; padding: 8px 12px; border-bottom: 1px solid #27272a;
+        display: flex; gap: 6px;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .logs { 
+        padding: 16px; height: 400px; overflow-y: auto; 
+        color: #4ade80; font-size: 0.85rem; display: flex; flex-direction: column-reverse;
+    }
+    .log-line { margin-bottom: 4px; border-left: 2px solid #27272a; padding-left: 8px; }
+
+    /* --- FOOTER --- */
+    .footer {
+        position: fixed; bottom: 20px; right: 20px;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+        border: 1px solid var(--border); border-radius: 50px;
+        padding: 8px 16px; font-size: 0.8rem; color: #a1a1aa;
+        display: flex; gap: 10px; align-items: center; z-index: 100;
+        transition: all 0.3s;
+    }
+    .footer:hover { background: rgba(0,0,0,0.9); border-color: var(--primary); color: white; }
+    .footer a { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+
+    /* --- STREAMLIT OVERRIDES --- */
+    .stTextArea textarea { background: rgba(0,0,0,0.3) !important; color: white !important; border: 1px solid var(--border) !important; }
+    .stTextArea textarea:focus { border-color: var(--primary) !important; box-shadow: 0 0 10px rgba(99,102,241,0.2) !important; }
+    div[data-testid="stButton"] button {
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border: none; color: white; font-weight: 600; padding: 10px 24px;
+        transition: all 0.3s; width: 100%;
+    }
+    div[data-testid="stButton"] button:hover {
+        transform: scale(1.02); box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    }
+    #MainMenu, footer, header { visibility: hidden; }
 </style>
-<div class="cursor-glow"></div>
+
+<div class="nebula"></div>
+<div class="nebula"></div>
 """, unsafe_allow_html=True)
 
-# --- 6. UI BODY ---
+# --- 5. HEADER SECTION ---
 st.markdown("""
-<div class="navbar glass">
-    <div style="font-weight:700; font-size:1.2rem; color:white;">⚡ DevLoop Prime <span style="font-size:0.7rem; background:rgba(99,102,241,0.2); padding:2px 8px; border-radius:10px;">V5.0</span></div>
-    <div style="color:#a1a1aa; font-size:0.9rem;">🟢 Neural Engine Active</div>
+<div class="glass-card navbar">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:24px;">⚡</span>
+        <div>
+            <div style="font-weight:700; font-size:1.1rem; letter-spacing:-0.5px;">DEVLOOP PRIME</div>
+            <div style="font-size:0.75rem; color:#a1a1aa;">Autonomous Agentic Architecture</div>
+        </div>
+    </div>
+    <div style="font-family:'JetBrains Mono'; font-size:0.8rem; background:rgba(255,255,255,0.05); padding:6px 12px; border-radius:6px;">
+        <span style="color:#4ade80;">●</span> SYSTEM ONLINE
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-m1, m2, m3, m4 = st.columns(4)
-def stat_box(label, value, icon):
-    return f"""<div class="stat-card glass"><div style="color:#71717a; font-size:0.8rem; text-transform:uppercase; display:flex; justify-content:space-between;"><span>{label}</span><span>{icon}</span></div><div class="stat-value">{value}</div></div>"""
-with m1: st.markdown(stat_box("Architecture", "Agentic Graph", "🕸️"), unsafe_allow_html=True)
-with m2: st.markdown(stat_box("Runtime", "Docker / Cloud", "🧊"), unsafe_allow_html=True)
-with m3: st.markdown(stat_box("Model", "Gemini 2.0 Flash", "🧠"), unsafe_allow_html=True)
-with m4: st.markdown(stat_box("Security", "Bandit SecOps", "🛡️"), unsafe_allow_html=True)
-st.write("")
+# Stats Row
+c1, c2, c3, c4 = st.columns(4)
+def stat(label, val, sub):
+    return f"""<div class="glass-card" style="padding:16px;"><div style="color:#71717a; font-size:0.75rem; font-weight:600;">{label}</div><div style="font-size:1.4rem; font-weight:700; margin:4px 0;">{val}</div><div style="font-size:0.7rem; color:var(--primary);">{sub}</div></div>"""
+with c1: st.markdown(stat("NODES", "3 Active", "Architect • Dev • Test"), unsafe_allow_html=True)
+with c2: st.markdown(stat("RUNTIME", "Docker", "Isolated Sandbox"), unsafe_allow_html=True)
+with c3: st.markdown(stat("MODEL", "Gemini 2.0", "Flash Experimental"), unsafe_allow_html=True)
+with c4: st.markdown(stat("LATENCY", "45ms", "Real-time Stream"), unsafe_allow_html=True)
 
-st.markdown('<div class="glass" style="padding: 24px; border-radius: 12px;">', unsafe_allow_html=True)
-col_left, col_right = st.columns([1, 1.6])
+st.write("") # Spacer
 
-with col_left:
-    st.markdown("### Mission Directive")
-    objective = st.text_area("objective", placeholder="Enter task (e.g., Create a secure login function)...", height=120, label_visibility="collapsed")
-    uploaded_file = st.file_uploader("Upload Code", type=["py"], label_visibility="collapsed")
-    st.write("")
-    if st.button("Initialize Sequence →"):
+# --- 6. MAIN WORKSPACE ---
+# Determine if we should apply the "glowing loading" class
+load_class = "loading-active" if st.session_state.get("running") else ""
+
+st.markdown(f'<div class="glass-card {load_class}" style="min-height: 600px;">', unsafe_allow_html=True)
+col_input, col_output = st.columns([1, 1.8])
+
+with col_input:
+    st.markdown("### 💠 Mission Control")
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    
+    objective = st.text_area("Task Objective", height=150, placeholder="E.g., Write a secure password validation function that requires special characters...", label_visibility="collapsed")
+    
+    uploaded_file = st.file_uploader("Inject Source Code (Optional)", type=["py"], label_visibility="collapsed")
+    
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+    
+    if st.button("INITIALIZE SEQUENCE 🚀"):
         st.session_state.running = True
         st.rerun()
 
-with col_right:
-    st.markdown("### Engineering Console")
-    tab_code, tab_test, tab_sec, tab_term = st.tabs(["📄 Code", "🧪 Tests", "🛡️ Audit", "📟 Output"])
+with col_output:
+    st.markdown("### 📟 Neural Logs")
+    tabs = st.tabs(["Execution Log", "Source Code", "Tests", "Security"])
+    
+    with tabs[0]:
+        terminal_container = st.empty()
+    
+    with tabs[1]:
+        code_container = st.empty()
+        code_container.code("# Waiting for input...", language="python")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 7. EXECUTION LOGIC ---
+# --- 7. FOOTER ---
+st.markdown("""
+<div class="footer">
+    <a href="https://github.com/Ayush1Deshmukh/Devloop" target="_blank">
+        <img src="https://img.icons8.com/ios-filled/50/ffffff/github.png" width="16"/>
+        <span>github.com/Ayush1Deshmukh/Devloop</span>
+    </a>
+    <span style="opacity:0.3">|</span>
+    <span>Ayush Deshmukh</span>
+</div>
+""", unsafe_allow_html=True)
+
+
+# --- 8. EXECUTION LOGIC (BACKEND CONNECTION) ---
 if st.session_state.get("running", False):
     
-    # 1. Handle Inputs
+    # 1. Setup Input
     initial_code = ""
     if uploaded_file:
         initial_code = uploaded_file.read().decode("utf-8")
         write_file("solution.py", initial_code)
-        if not objective: objective = "Refactor code to fix security issues."
     
-    if not objective and not uploaded_file:
-        st.warning("⚠️ Input Required")
+    if not objective and not initial_code:
+        st.warning("⚠️ Please provide an objective or file.")
         st.session_state.running = False
         st.stop()
 
-    # 2. Prepare State
     inputs = {
-        "objective": objective, "code_content": initial_code, 
-        "test_content": "", "test_output": "", "security_report": "", 
-        "status": "pending", "iterations": 0, "logs": []
+        "objective": objective if objective else "Refactor provided code",
+        "code_content": initial_code,
+        "test_content": "", "test_output": "", "status": "pending", "iterations": 0, "logs": []
     }
-    
-    with col_left:
-        st.write("")
-        terminal_placeholder = st.empty()
-    logs_history = []
 
-    # 3. Run Stream (With Error Handling)
+    # 2. Run Stream
+    logs_history = []
+    
     try:
-        for event in app.stream(inputs):
+        # We assume logic.py has been updated to yield 'logs' in the state
+        for event in logic_app.stream(inputs):
             for node_name, node_data in event.items():
                 
-                # Logs
+                # A. Update Terminal
                 if "logs" in node_data:
                     for log in node_data["logs"]:
                         ts = time.strftime("%H:%M:%S")
-                        logs_history.append(f"<div class='log-entry'><span style='color:#52525b'>{ts}</span> <span>{log}</span></div>")
+                        # Add colored icon based on role
+                        icon = "🔹"
+                        if "ARCHITECT" in log: icon = "📐"
+                        elif "DEVELOPER" in log: icon = "👨‍💻"
+                        elif "TESTER" in log: icon = "🧪"
+                        elif "SUCCESS" in log: icon = "✅"
+                        elif "FAIL" in log: icon = "❌"
+                        
+                        entry = f"""
+                        <div class="log-line">
+                            <span style="color:#71717a; font-size:0.7rem; margin-right:8px;">{ts}</span>
+                            <span>{icon} {log}</span>
+                        </div>
+                        """
+                        logs_history.insert(0, entry) # Prepend for reverse order
+                        
+                        # Render Terminal
                         log_html = "".join(logs_history)
-                        terminal_placeholder.markdown(f"""<div class="terminal"><div class="terminal-bar"><div style="width:10px;height:10px;background:#ff5f56;border-radius:50%"></div><div style="width:10px;height:10px;background:#ffbd2e;border-radius:50%"></div><div style="width:10px;height:10px;background:#27c93f;border-radius:50%"></div></div><div class="logs-area">{log_html}</div></div>""", unsafe_allow_html=True)
-                        time.sleep(0.05)
-                
-                # Updates
+                        terminal_container.markdown(f"""
+                        <div class="terminal">
+                            <div class="terminal-header">
+                                <div class="dot" style="background:#ef4444"></div>
+                                <div class="dot" style="background:#eab308"></div>
+                                <div class="dot" style="background:#22c55e"></div>
+                            </div>
+                            <div class="logs">{log_html}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        time.sleep(0.05) # Typewriter effect feel
+
+                # B. Update Code Tabs
                 if "code_content" in node_data:
-                    with tab_code: st.code(node_data["code_content"], language="python", line_numbers=True)
+                    with tabs[1]: st.code(node_data["code_content"], language="python", line_numbers=True)
+                
                 if "test_content" in node_data:
-                    with tab_test: st.code(node_data["test_content"], language="python", line_numbers=True)
+                    with tabs[2]: st.code(node_data["test_content"], language="python", line_numbers=True)
+
                 if "security_report" in node_data:
-                    with tab_sec:
-                        rep = node_data["security_report"]
-                        if "VULNERABILITIES" in rep: st.error(rep, icon="🚨")
-                        else: st.success(rep, icon="✅")
-                if "test_output" in node_data:
-                    with tab_term:
-                        if node_data["status"] == "success": st.success(node_data['test_output'])
-                        else: st.error(node_data['test_output'])
+                    with tabs[3]: 
+                        st.info(node_data["security_report"])
 
+        st.success("Sequence Completed Successfully")
+        st.balloons()
         st.session_state.running = False
-        st.toast("Sequence Complete", icon="✅")
-        time.sleep(2)
-        st.rerun()
-
+        
     except Exception as e:
-        # Show specific error if crash happens
-        st.error(f"❌ EXECUTION FAILURE: {str(e)}")
+        st.error(f"System Failure: {e}")
         st.session_state.running = False
