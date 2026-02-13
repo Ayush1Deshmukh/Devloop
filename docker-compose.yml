@@ -1,0 +1,61 @@
+services:
+  # 1. ENTERPRISE GATEWAY (Java Spring Boot)
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.java
+    container_name: devloop-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    networks:
+      - devloop-net
+
+  # 2. AI ENGINE (Python FastAPI + LangGraph)
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: devloop-api
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://devloop-redis:6379/0  # Uses service name for discovery
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}        # PULLS FROM .ENV (No hardcoding!)
+      - LLM_MODEL=gemini-1.5-flash
+    depends_on:
+      - redis
+      - sandbox
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - devloop-net
+
+  # 3. CACHE (Redis)
+  redis:
+    image: redis:alpine
+    container_name: devloop-redis
+    networks:
+      - devloop-net
+    volumes:
+      - redis_data:/data
+
+  # 4. EXECUTION HANDS (Sandbox)
+  sandbox:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.sandbox
+    container_name: devloop-sandbox
+    volumes:
+      - .:/workspace
+    networks:
+      - devloop-net
+
+networks:
+  devloop-net:
+    driver: bridge
+
+volumes:
+  redis_data:

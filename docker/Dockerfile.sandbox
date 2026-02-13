@@ -1,0 +1,9 @@
+# The Sandbox is just a Python environment with testing tools
+FROM python:3.11-slim
+
+WORKDIR /workspace
+# Install Testing & Security Tools
+RUN pip install pytest bandit
+
+# Keep the container alive forever so we can send commands to it
+CMD ["tail", "-f", "/dev/null"]

@@ -1,0 +1,20 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.pytest_cache/
+
+# Java / Maven
+target/
+*.jar
+*.class
+.mvn/
+mvnw
+mvnw.cmd
+
+# Infrastructure & OS
+.DS_Store
+redis_data/
