@@ -20,6 +20,7 @@ prometheus-client>=0.19.0
 
 # --- Frontend (Keeping v1 UI for now) ---
 streamlit==1.52.2
+python-dotenv   # required by Streamlit Cloud and environment handling
 
 # --- Testing & Security ---
 pytest==9.0.2
