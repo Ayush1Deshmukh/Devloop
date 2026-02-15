@@ -1,6 +1,10 @@
-import streamlit as st
 import os
 import sys
+
+# Ensure the root directory is in the python path
+sys.path.append(os.path.dirname(__file__))
+
+import streamlit as st
 
 # --- THE CRITICAL FIX: REVEAL THE 'app' FOLDER ---
 # This adds the /app directory to Python's search path so it can find your modules
