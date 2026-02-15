@@ -33,17 +33,27 @@ try:
     # 1. Try direct import (Streamlit Cloud root style)
     import logic
     import tools
-    logic_app = logic.agent_app
+    try:
+        logic_app = logic.agent_app
+    except AttributeError:
+        logic_app = getattr(logic, 'agent_app', getattr(logic, 'app', None))
     write_file = tools.write_file
 except ImportError:
     try:
         # 2. Try package import (Local Microservices style)
         from app import logic, tools
-        logic_app = logic.agent_app
+        try:
+            logic_app = logic.agent_app
+        except AttributeError:
+            logic_app = getattr(logic, 'agent_app', getattr(logic, 'app', None))
         write_file = tools.write_file
     except ImportError as e:
         st.error(f"🚀 Deployment Error: System could not find logic.py or tools.py. Error: {e}")
         st.stop()
+
+if logic_app is None:
+    st.error("🚀 System Error: The AI Engine (agent_app) could not be found in logic.py")
+    st.stop()
 
 # --- 2. CONFIG ---
 st.set_page_config(

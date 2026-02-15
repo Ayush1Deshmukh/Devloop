@@ -260,4 +260,7 @@ workflow.add_edge("developer", "security")
 workflow.add_edge("security", "tester")
 workflow.add_conditional_edges("tester", router, {"end": END, "developer": "developer"})
 
-app = workflow.compile()
+# Ensure the compiled graph is named 'agent_app'
+agent_app = workflow.compile()
+# legacy alias for any existing references
+app = agent_app
