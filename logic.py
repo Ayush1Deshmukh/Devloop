@@ -125,10 +125,7 @@ import streamlit as st
 from langgraph.graph import StateGraph, END
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
-try:
-    from tools import write_file, run_test
-except ImportError:
-    from .tools import write_file, run_test
+from tools import write_file, run_test
 
 # --- 1. KEY LOADING ---
 if "GOOGLE_API_KEY" not in os.environ:

@@ -24,12 +24,14 @@ import streamlit.components.v1 as components
 import time
 
 # Now we can import these because of the sys.path.append fix
-# If logic.py is in the same folder as app.py
+# Use this if logic.py and tools.py are in the same folder as app.py
 try:
-    from logic import agent_app as logic_app, write_file
+    from logic import agent_app as logic_app
+    from tools import write_file
 except ImportError:
-    # This handles the case if you eventually move it to the 'app' folder
-    from app.logic import agent_app as logic_app, write_file
+    # Fallback in case you move them to the 'app' folder later
+    from app.logic import agent_app as logic_app
+    from app.tools import write_file
 
 # --- 2. CONFIG ---
 st.set_page_config(
