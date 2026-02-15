@@ -1,151 +1,74 @@
+import streamlit as st
 import os
 import sys
 
-# Ensure the root directory is in the python path
-sys.path.append(os.path.dirname(__file__))
+# --- 1. CONFIG MUST BE FIRST ---
+st.set_page_config(
+    page_title="DevLoop Debug",
+    page_icon=":wrench:",
+    layout="wide"
+)
 
-import streamlit as st
+st.title("DevLoop Diagnostic Mode")
+st.write("Initializing System...")
 
-# --- THE CRITICAL FIX: REVEAL THE 'app' FOLDER ---
-# This adds the /app directory to Python's search path so it can find your modules
-current_dir = os.path.dirname(__file__)
-app_path = os.path.join(current_dir, 'app')
-if app_path not in sys.path:
-    sys.path.append(app_path)
+# --- 2. PATH SETUP ---
+try:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(current_dir)
+    st.success(f"Path set to: {current_dir}")
+except Exception as e:
+    st.error(f"Path Setup Failed: {e}")
+    st.stop()
 
-# --- 1. SECRETS SETUP ---
+# --- 3. SECRETS SETUP ---
 try:
     if "GOOGLE_API_KEY" in st.secrets:
         os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
-except (FileNotFoundError, KeyError):
-    pass
+        st.success("API Key Loaded from Secrets")
+    else:
+        st.warning("GOOGLE_API_KEY not found in Streamlit Secrets")
+except Exception as e:
+    st.warning(f"Secrets Error: {e}")
 
-import streamlit.components.v1 as components
-import time
-
-# --- THE ABSOLUTE PATH FIX ---
-# This adds the current directory to the path so 'import logic' always works
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# --- 4. SAFE IMPORT LOGIC ---
+st.write("Attempting to import logic...")
 
 try:
-    # 1. Try direct import (Streamlit Cloud root style)
     import logic
     import tools
-    try:
+    if hasattr(logic, 'agent_app'):
         logic_app = logic.agent_app
-    except AttributeError:
-        logic_app = getattr(logic, 'agent_app', getattr(logic, 'app', None))
-    write_file = tools.write_file
-except ImportError:
-    try:
-        # 2. Try package import (Local Microservices style)
-        from app import logic, tools
-        try:
-            logic_app = logic.agent_app
-        except AttributeError:
-            logic_app = getattr(logic, 'agent_app', getattr(logic, 'app', None))
-        write_file = tools.write_file
-    except ImportError as e:
-        st.error(f"🚀 Deployment Error: System could not find logic.py or tools.py. Error: {e}")
+        st.success(f"Logic Module Loaded (Type: {type(logic_app)})")
+    else:
+        st.error(f"'agent_app' not found in logic.py. Available attributes: {dir(logic)}")
         st.stop()
-
-if logic_app is None:
-    st.error("🚀 System Error: The AI Engine (agent_app) could not be found in logic.py")
+    write_file = tools.write_file
+    st.success("Tools Module Loaded")
+except ImportError as e:
+    st.error(f"Import Failed: {e}")
+    st.info("Check your requirements.txt: streamlit, langgraph, langchain-google-genai")
+    st.stop()
+except Exception as e:
+    st.error(f"Critical System Crash during Import: {e}")
     st.stop()
 
-# --- 2. CONFIG ---
-st.set_page_config(
-    page_title="DevLoop Prime",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# --- 5. SIMPLE UI (Test if App Runs) ---
+st.divider()
+st.subheader("System Ready")
+objective = st.text_input("Enter a test objective", "Print hello world")
+if st.button("Run Test Agent"):
+    with st.spinner("Agent running..."):
+        try:
+            inputs = {"objective": objective, "code_content": "", "test_content": "", "test_output": "", "status": "pending", "iterations": 0, "logs": []}
+            for event in logic_app.stream(inputs):
+                st.write(event)
+            st.success("Test Completed!")
+        except Exception as e:
+            st.error(f"Runtime Execution Error: {e}")
 
-# ... [KEEP ALL YOUR CSS AND HEADER CODE EXACTLY THE SAME] ...
-# [Section 3, 4, 5, 6, and 7 remain unchanged]
-
-# --- 8. EXECUTION LOGIC (BACKEND CONNECTION) ---
-if st.session_state.get("running", False):
-    
-    # 1. Setup Input
-    initial_code = ""
-    if uploaded_file:
-        initial_code = uploaded_file.read().decode("utf-8")
-        # Ensure tools.write_file works in cloud (might need /tmp path)
-        write_file("solution.py", initial_code)
-    
-    if not objective and not initial_code:
-        st.warning("⚠️ Please provide an objective or file.")
-        st.session_state.running = False
-        st.stop()
-
-    inputs = {
-        "objective": objective if objective else "Refactor provided code",
-        "code_content": initial_code,
-        "test_content": "", 
-        "test_output": "", 
-        "status": "pending", 
-        "iterations": 0, 
-        "logs": []
-    }
-
-    # 2. Run Stream
-    logs_history = []
-    
-    try:
-        # Use .stream() from your LangGraph agent
-        for event in logic_app.stream(inputs):
-            for node_name, node_data in event.items():
-                
-                # A. Update Terminal
-                if "logs" in node_data:
-                    for log in node_data["logs"]:
-                        ts = time.strftime("%H:%M:%S")
-                        icon = "🔹"
-                        if "ARCHITECT" in log: icon = "📐"
-                        elif "DEVELOPER" in log: icon = "👨‍💻"
-                        elif "TESTER" in log: icon = "🧪"
-                        elif "SUCCESS" in log: icon = "✅"
-                        elif "FAIL" in log: icon = "❌"
-                        
-                        entry = f"""
-                        <div class="log-line">
-                            <span style="color:#71717a; font-size:0.7rem; margin-right:8px;">{ts}</span>
-                            <span>{icon} {log}</span>
-                        </div>
-                        """
-                        logs_history.insert(0, entry)
-                        
-                        log_html = "".join(logs_history)
-                        terminal_container.markdown(f"""
-                        <div class="terminal">
-                            <div class="terminal-header">
-                                <div class="dot" style="background:#ef4444"></div>
-                                <div class="dot" style="background:#eab308"></div>
-                                <div class="dot" style="background:#22c55e"></div>
-                            </div>
-                            <div class="logs">{log_html}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        time.sleep(0.05)
-
-                # B. Update UI Tabs
-                if "code_content" in node_data:
-                    with tabs[1]: st.code(node_data["code_content"], language="python", line_numbers=True)
-                
-                if "test_content" in node_data:
-                    with tabs[2]: st.code(node_data["test_content"], language="python", line_numbers=True)
-
-                if "security_report" in node_data:
-                    with tabs[3]: 
-                        st.info(node_data["security_report"])
-
-        st.success("Sequence Completed Successfully")
-        st.balloons()
-        st.session_state.running = False
-        
-    except Exception as e:
-        st.error(f"System Failure: {e}")
-        st.session_state.running = False
+# --- 6. DEBUG FOOTER ---
+st.markdown("---")
+st.caption(f"Python Executable: {sys.executable}")
+st.caption(f"Working Directory: {os.getcwd()}")
+st.caption(f"Directory Contents: {os.listdir(os.getcwd())}")
