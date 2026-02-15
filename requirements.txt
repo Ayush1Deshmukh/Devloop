@@ -1,28 +1,28 @@
-# --- Core AI & LangGraph (Preserving your working versions) ---
-langchain-google-genai==4.1.2
-langchain-core==1.2.5
-langgraph==1.0.5
-google-genai==1.56.0
-google-generativeai==0.8.6
+# --- Core AI & Orchestration ---
+langchain-google-genai>=1.0.0
+langchain-core>=0.1.0
+langgraph>=0.0.10
+google-genai>=0.3.0
+google-generativeai>=0.4.0
 
-# --- API Framework (NEW for v2.0) ---
+# --- API Framework (v2.0 Architecture) ---
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart
 
 # --- Configuration & Validation ---
-pydantic==2.12.5
+pydantic>=2.0.0
 pydantic-settings>=2.0.0
 
-# --- Infrastructure (NEW for v2.0) ---
+# --- Infrastructure ---
 redis>=5.0.0
 prometheus-client>=0.19.0
 
-# --- Frontend (Keeping v1 UI for now) ---
-streamlit==1.52.2
-python-dotenv   # required by Streamlit Cloud and environment handling
+# --- Frontend ---
+streamlit>=1.30.0
+python-dotenv
 
-# --- Testing & Security ---
-pytest==9.0.2
-bandit      # Crucial for your SecOps feature (was missing in your list)
-httpx       # Required for testing the API endpoints
+# --- Testing & Security (The "Self-Healing" Engine) ---
+pytest>=7.0.0
+bandit>=1.7.0  # Critical for SecOps Node
+httpx          # Required for API testing
