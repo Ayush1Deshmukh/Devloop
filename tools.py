@@ -13,6 +13,7 @@ def run_test(solution_file="solution.py", test_file="test_solution.py"):
     if is_cloud:
         # CLOUD MODE (Subprocess)
         try:
+            # We use sys.executable to ensure we use the same python environment
             result = subprocess.run(
                 [sys.executable, "-m", "pytest", test_file], 
                 capture_output=True, text=True, timeout=15

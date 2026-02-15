@@ -1,23 +1,27 @@
 import os
 import subprocess
+import time
 from typing import TypedDict
-from dotenv import load_dotenv # <--- ADDED THIS
+from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 import streamlit as st
 
-# --- 0. LOAD ENV VARIABLES (Local Fix) ---
-load_dotenv() 
+# --- 0. LOAD ENV ---
+load_dotenv()
 
 # --- 1. PATH FIX ---
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 try:
     from tools import write_file, run_test
 except ImportError:
     from app.tools import write_file, run_test
 
 # --- 2. KEY LOADING ---
-# First try loading from environment (local .env), then Streamlit secrets (cloud)
 if "GOOGLE_API_KEY" not in os.environ:
     try:
         if "GOOGLE_API_KEY" in st.secrets:
@@ -25,13 +29,12 @@ if "GOOGLE_API_KEY" not in os.environ:
     except FileNotFoundError:
         pass
 
-# --- 3. CONFIG (VERIFIED MODEL) ---
-try:
-    # Using the verified model from your check_models.py
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
-except Exception as e:
-    llm = None
-    print(f"⚠️ LLM Init Failed: {e}")
+# --- 3. CONFIG (REAL AI MODELS) ---
+# Primary: Gemini 2.0 Flash (Fast & Smart)
+llm_primary = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0)
+
+# Backup: Gemini 1.5 Flash (Reliable Fallback)
+llm_backup = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
 
 class DevState(TypedDict):
     objective: str
@@ -45,7 +48,6 @@ class DevState(TypedDict):
 
 # --- 4. HELPERS ---
 def clean_content(response):
-    """Robustly handle Gemini's output."""
     if not response or not response.content: return ""
     content = response.content
     if isinstance(content, list):
@@ -65,26 +67,43 @@ def run_security_scan(filename):
     except FileNotFoundError:
         return "⚠️ Security Scanner (Bandit) not found. Skipping."
 
+def safe_invoke(prompt):
+    """
+    Real AI Wrapper:
+    1. Tries Gemini 2.0.
+    2. If Rate Limit (429), waits and switches to Gemini 1.5.
+    """
+    try:
+        return llm_primary.invoke([HumanMessage(content=prompt)])
+    except Exception as e:
+        # Check for Rate Limit or Resource Exhausted errors
+        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            st.toast("⚠️ Primary quota hit. Switching to Backup Model...", icon="🔄")
+            time.sleep(2) 
+            try:
+                # RETRY WITH BACKUP MODEL
+                return llm_backup.invoke([HumanMessage(content=prompt)])
+            except Exception as e2:
+                return HumanMessage(content=f"# CRITICAL ERROR: Both models failed.\n# {str(e2)}")
+        else:
+            return HumanMessage(content=f"# ERROR: {str(e)}")
+
 # --- 5. NODES ---
 
 def architect_node(state: DevState):
-    if not llm:
-        return {"logs": ["❌ [ARCHITECT] CRITICAL: No API Key found. Check .env file."]}
-    
     log = "🏗️ [ARCHITECT] Designing unit tests (TDD)..."
     prompt = f"Write a pytest unit test for: '{state['objective']}'. File: 'test_solution.py'. Import 'solution'. ONLY code."
     
-    try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        res = clean_content(response)
-        write_file("test_solution.py", res)
-        return {"test_content": res, "iterations": 0, "logs": [log, "✅ [ARCHITECT] Tests Generated."]}
-    except Exception as e:
-        return {"logs": [f"❌ [ARCHITECT] Error: {str(e)}"]}
+    # CALL REAL AI
+    response = safe_invoke(prompt)
+    res = clean_content(response)
+    
+    if not res: res = "# Error generating tests"
+    write_file("test_solution.py", res)
+    
+    return {"test_content": res, "iterations": 0, "logs": [log, "✅ [ARCHITECT] Tests Generated."]}
 
 def developer_node(state: DevState):
-    if not llm: return {"logs": ["❌ [DEVELOPER] Aborted: LLM is None"]}
-
     i = state.get("iterations", 0) + 1
     log = f"👨‍💻 [DEVELOPER] Coding (Cycle {i})..."
     
@@ -98,13 +117,14 @@ def developer_node(state: DevState):
         
     prompt = f"Fix code based on:\n{context}\nObjective: {state['objective']}\nONLY python code." if context else f"Write python code for: '{state['objective']}'. File: 'solution.py'. ONLY python code."
     
-    try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        res = clean_content(response)
-        write_file("solution.py", res)
-        return {"code_content": res, "iterations": i, "logs": [log]}
-    except Exception as e:
-        return {"logs": [f"❌ [DEVELOPER] Error: {str(e)}"]}
+    # CALL REAL AI
+    response = safe_invoke(prompt)
+    res = clean_content(response)
+    
+    if not res: res = "# Error generating code"
+    write_file("solution.py", res)
+    
+    return {"code_content": res, "iterations": i, "logs": [log]}
 
 def security_node(state: DevState):
     log = "🛡️ [SEC-OPS] Scanning..."
@@ -126,25 +146,15 @@ def tester_node(state: DevState):
     final_log = "✅ [SUCCESS] Tests Passed!" if status == 'success' else "❌ [FAIL] Tests Failed."
     return {"test_output": output, "status": status, "logs": [log, final_log]}
 
-# --- 5. GRAPH ROUTING ---
 def router(state: DevState):
-    # 1. READ LOGS FOR FATAL ERRORS
-    # We check the last few logs to see if a permission error occurred
+    # Stop if we hit a permission error (bad key)
     last_logs = state.get("logs", [])
-    for log_entry in last_logs:
-        if "PERMISSION_DENIED" in log_entry or "403" in log_entry:
-            return END  # <--- STOP IMMEDIATELY
-    
-    # 2. STANDARD EXIT CONDITIONS
-    sec_report = state.get("security_report", "")
-    test_status = state.get("status", "failed")
-    
-    if test_status == "success" and ("Clear" in sec_report or "High: 0" in sec_report):
-        return END
-    
-    if state["iterations"] > 5: 
-        return END
-    
+    for log in last_logs:
+        if "PERMISSION_DENIED" in log or "403" in log: return END
+
+    sec = state.get("security_report", "")
+    if state["status"] == "success" and ("Clear" in sec or "High: 0" in sec): return END
+    if state["iterations"] > 5: return END
     return "developer"
 
 workflow = StateGraph(DevState)
