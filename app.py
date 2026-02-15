@@ -12,7 +12,16 @@ import os
 import sys
 import time
 import streamlit.components.v1 as components
-
+# --- DEBUG: DELETE THIS AFTER FIXING ---
+import google.generativeai as genai
+try:
+    if "GOOGLE_API_KEY" in os.environ:
+        genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        st.sidebar.error(f"🔍 AVAILABLE MODELS: {models}")
+except Exception as e:
+    st.sidebar.error(f"Debug Error: {e}")
+    
 # ---------------------------------------------------
 # 1. PAGE CONFIGURATION
 # ---------------------------------------------------
