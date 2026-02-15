@@ -23,18 +23,26 @@ except (FileNotFoundError, KeyError):
 import streamlit.components.v1 as components
 import time
 
-# --- THE FIX: DYNAMIC IMPORT ---
+# --- THE ABSOLUTE PATH FIX ---
+# This adds the current directory to the path so 'import logic' always works
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
 try:
-    # Try importing from root (Streamlit Cloud standard)
-    from logic import agent_app as logic_app
-    from tools import write_file
+    # 1. Try direct import (Streamlit Cloud root style)
+    import logic
+    import tools
+    logic_app = logic.agent_app
+    write_file = tools.write_file
 except ImportError:
-    # Try importing from the app folder (Local/Microservices standard)
     try:
-        from app.logic import agent_app as logic_app
-        from app.tools import write_file
+        # 2. Try package import (Local Microservices style)
+        from app import logic, tools
+        logic_app = logic.agent_app
+        write_file = tools.write_file
     except ImportError as e:
-        st.error(f"Critical Path Error: {e}")
+        st.error(f"🚀 Deployment Error: System could not find logic.py or tools.py. Error: {e}")
         st.stop()
 
 # --- 2. CONFIG ---
