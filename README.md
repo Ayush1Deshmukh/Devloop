@@ -121,7 +121,7 @@ Generated code never executes in orchestration containers.
 
 ```mermaid
 graph TD
-    User[👤 User] -->|HTTP POST| GW[🛡️ Spring Boot Gateway]
+    User[👤 User] --->|HTTP POST| GW[🛡️ Spring Boot Gateway]
     GW -->|Validated Call| API[🧠 FastAPI AI Engine]
     API -->|Read/Write| Redis[(💾 Redis Cache)]
     API -->|Invoke Workflow| Agent[👨‍💻 LangGraph Supervisor]
