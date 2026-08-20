@@ -1,0 +1,23 @@
+# Streamlit Community Cloud picks this up automatically.
+# Matches the cyberpunk CSS in app.py so Streamlit's own chrome (menus, dialogs,
+# widgets) doesn't flash light-themed against the dark page.
+
+[theme]
+base = "dark"
+primaryColor = "#00f3ff"
+backgroundColor = "#050505"
+secondaryBackgroundColor = "#111111"
+textColor = "#ffffff"
+
+[server]
+headless = true
+# Generated code can be large; keep uploads small since this runs on free tiers.
+maxUploadSize = 2
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# Show errors in the UI rather than only in logs — this is a demo, and a silent
+# failure on a public deploy is worse than a visible one.
+showErrorDetails = true

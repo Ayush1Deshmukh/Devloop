@@ -1,34 +1,88 @@
-name: Python Package using Conda
+# NOTE: the filename is historical. This project uses pip + requirements.txt,
+# not conda — the old workflow referenced an environment.yml that never existed,
+# so every push failed at the dependency step.
+name: CI
 
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
-  build-linux:
+  python:
+    name: Python (lint + tests)
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 5
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-    - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
-      run: |
-        conda env update --file environment.yml --name base
-    - name: Lint with flake8
-      run: |
-        conda install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        conda install pytest
-        pytest
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Lint with flake8
+        run: |
+          # Excludes and limits live in .flake8 so CI and local runs agree.
+          # Blocking gate: real syntax errors and undefined names.
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Full check — the project is currently clean, so this is blocking too.
+          flake8 . --count --statistics
+
+      - name: Security scan with Bandit
+        run: bandit -r app -ll --exit-zero
+
+      - name: Test with pytest
+        run: pytest -q
+
+  java:
+    name: Java Gateway (build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      # `package` runs the AgentControllerTest suite as well as compiling.
+      - name: Build and test gateway
+        run: mvn -B clean package --file pom.xml
+
+  docker:
+    name: Docker images (build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # These builds are the only thing that catches a broken Dockerfile before
+      # a deploy does. The gateway one previously copied a jar from the
+      # gitignored target/ dir and failed on any clean checkout.
+      - name: Build AI engine image
+        run: docker build -f docker/Dockerfile -t devloop-api:ci .
+
+      - name: Build gateway image
+        run: docker build -f docker/Dockerfile.java -t devloop-gateway:ci .
+
+      - name: Build sandbox image
+        run: docker build -f docker/Dockerfile.sandbox -t devloop-sandbox:ci .
+
+      - name: Verify .env is not baked into the engine image
+        run: |
+          if docker run --rm --entrypoint sh devloop-api:ci -c 'ls -a /app/.env' 2>/dev/null; then
+            echo "::error::.env leaked into the image - check .dockerignore"
+            exit 1
+          fi
+          echo "OK: no .env inside the image"

@@ -4,6 +4,7 @@ def test_health_check(client):
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
 
+
 def test_metrics_endpoint(client):
     """Ensure Prometheus metrics are exposed."""
     response = client.get("/metrics")

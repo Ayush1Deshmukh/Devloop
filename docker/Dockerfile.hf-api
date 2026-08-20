@@ -1,0 +1,30 @@
+# FastAPI AI Engine — Hugging Face Spaces (Docker SDK), free CPU tier.
+#
+# Differences from docker/Dockerfile (the docker-compose one):
+#   * Listens on 7860, the port Spaces expects.
+#   * Runs as UID 1000, which Spaces requires (root containers are rejected).
+#   * No docker.io package: there is no Docker socket on free hosting, so the
+#     agent uses the rlimit sandbox in tools.py instead.
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=7860
+
+# Spaces runs containers as a non-root user with this exact UID.
+RUN useradd -m -u 1000 user
+WORKDIR /home/user/app
+
+COPY --chown=user requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=user . .
+
+USER user
+
+EXPOSE 7860
+
+# Single worker: the free tier has limited RAM, and each worker loads the whole
+# LangGraph/LangChain stack.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860} --workers 1"]

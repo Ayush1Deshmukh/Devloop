@@ -38,6 +38,7 @@ Modern AI systems require **Separation of Concerns**. DevLoop has evolved from a
 | **AI Engine** | **FastAPI** | LangGraph orchestration and LLM state management |
 | **Memory** | **Redis** | Persistence of agent states and rate-limiting |
 | **Sandbox** | **Docker** | Isolated, secure execution of generated artifacts |
+| **Neural Console** | **Streamlit** | Operator UI for launching and watching runs |
 
 ---
 
@@ -103,7 +104,7 @@ graph TD
 | Orchestration | LangGraph — Cyclic State Management |
 | Backend (Gateway) | Java 17, Spring Boot 3.x |
 | Backend (AI) | Python 3.11, FastAPI |
-| LLM | Google Gemini 1.5 Flash |
+| LLM | Google Gemini 2.0 Flash (2.5 Flash as quota fallback) |
 | Infrastructure | Docker, Docker Compose, Redis |
 | Frontend | Streamlit + Custom Glassmorphism UI |
 
@@ -128,43 +129,79 @@ DevLoop/
 
 ---
 
-## ⚡ Quick Start (Enterprise Deployment)
+## ⚡ Quick Start
 
-### Prerequisites
+### 0️⃣ Get a Gemini API key
 
-- Docker & Docker Compose  
-- Google Gemini API Key  
+Create one at **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**, then:
+
+```bash
+cp .env.example .env     # then add your GOOGLE_API_KEY
+```
+
+> **Check your key before your first run.** Launch the UI and press
+> **🩺 Test this key** in the sidebar. It calls Google's ListModels endpoint and
+> tells you exactly what is wrong — suspended key, invalid key, disabled API, or
+> a retired model name — instead of failing halfway through a run. It also prints
+> every model your key can actually use, which is what `LLM_MODEL` must be set to.
 
 ---
 
-### 1️⃣ Configure Secrets
+### 1️⃣ Run the UI only (no Docker — fastest path)
 
-Create a `.env` file in the root directory:
+This is all you need to see the agent work. Generated code runs in the rlimit
+sandbox rather than a container.
 
 ```bash
-GOOGLE_API_KEY="your_api_key_here"
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Open **http://localhost:8501**.
+
+---
+
+### 2️⃣ Or run the full stack (Docker sandbox + Gateway + Redis)
+
+
+Deploy the entire 5-container stack (gateway, engine, UI, Redis, sandbox)
+with a single command. The gateway jar is built inside its image, so you do
+not need Maven installed:
+
+```bash
+docker compose up --build -d
 ```
 
 ---
 
-### 2️⃣ Build and Launch
-
-Deploy the entire 4-container stack with a single command:
-
-```bash
-# Build the Java artifact using a builder container
-docker run --rm -v "$(pwd)":/app -w /app maven:3.9.6-eclipse-temurin-17 mvn clean package -DskipTests
-
-# Launch the Microservices
-docker-compose up --build -d
-```
-
----
-
-### 3️⃣ Access the System
+### 3️⃣ Access the full stack
 
 - Gateway API: http://localhost:8080/api/v1/agent/execute  
 - Neural Console (UI): http://localhost:8501  
+- Engine docs: http://localhost:8000/docs  
+
+---
+
+## ☁️ Deploying for Free
+
+Full step-by-step guide: **[DEPLOYMENT.md](DEPLOYMENT.md)**
+
+| Component | Free host |
+|---|---|
+| Neural Console | Streamlit Community Cloud |
+| AI Engine | Hugging Face Spaces / Render |
+| Gateway | Render (`render.yaml` blueprint included) |
+| Redis | Upstash |
+
+> **One honest caveat:** the Docker sandbox is *local-only*. No free host mounts
+> `/var/run/docker.sock`, so a deployed instance automatically falls back to an
+> OS-level sandbox — throwaway temp dir, CPU/memory/process/file-size rlimits,
+> wall-clock timeout, and an environment scrubbed of your API key. Strong, but
+> not kernel-namespace isolation. Details in [DEPLOYMENT.md](DEPLOYMENT.md).
+
+The public demo gives each visitor a few free runs on the maintainer's key, then
+invites them to paste their own — so the demo stays live regardless of traffic.
 
 ---
 
@@ -175,6 +212,17 @@ docker-compose up --build -d
 - 🛡️ **Security-First** — Every iteration scanned for vulnerabilities using Bandit.  
 - 🔁 **Self-Healing** — Reads stack traces, fixes its own bugs in real-time.  
 - 🐳 **Sandboxed Execution** — High-security code execution in isolated containers.  
+
+---
+
+## 🧯 Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Sequence aborted` immediately, log says the key is **suspended** | Google suspended that key's project. It cannot be revived. | Create a fresh key, ideally in a **new** Cloud project. |
+| `Sequence aborted`, log says the model was rejected | `LLM_MODEL` names a retired model (e.g. any `gemini-1.5-*`). | Press **🩺 Test this key** to list usable models; set `LLM_MODEL` to one of them. |
+| Sidebar shows `SANDBOX rlimit` instead of `Docker` | The `devloop-sandbox` container isn't running. | `docker compose up -d`, or accept rlimit isolation for local use. |
+| Security tab always says "Scanner unavailable" | Bandit isn't installed in the interpreter running the app. | `pip install -r requirements.txt` inside the same venv you launch Streamlit from. |
 
 ---
 

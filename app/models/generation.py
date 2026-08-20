@@ -1,12 +1,10 @@
-from pydantic import BaseModel
-from typing import Optional
+"""Deprecated module.
 
-class GenerationRequest(BaseModel):
-    objective: str
-    security_level: Optional[str] = "low"
-    max_iterations: Optional[int] = 1
+The request/response models used to be duplicated here (without validation) and
+in ``app.models.schemas`` (with validation). ``schemas`` is now the single source
+of truth; this module re-exports it so existing imports keep working.
+"""
 
-class GenerationResponse(BaseModel):
-    task_id: str
-    status: str
-    message: str
+from app.models.schemas import GenerationRequest, GenerationResponse
+
+__all__ = ["GenerationRequest", "GenerationResponse"]

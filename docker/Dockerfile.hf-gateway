@@ -1,0 +1,35 @@
+# Spring Boot Gateway — Hugging Face Spaces (Docker SDK), free CPU tier.
+#
+# Multi-stage so the jar is built inside the image. docker/Dockerfile.java
+# expects a prebuilt target/*.jar, which no free host can produce for you.
+
+# --- Stage 1: build the jar ---
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /build
+
+# Copy the POM first so dependency resolution is cached across source changes.
+COPY pom.xml .
+RUN mvn -B -q dependency:go-offline
+
+COPY src ./src
+RUN mvn -B -q clean package -DskipTests
+
+# --- Stage 2: slim runtime ---
+FROM eclipse-temurin:17-jre
+
+ENV PORT=7860
+
+RUN useradd -m -u 1000 user
+WORKDIR /home/user/app
+
+COPY --from=build --chown=user /build/target/*.jar app.jar
+
+USER user
+
+EXPOSE 7860
+
+# DEVLOOP_ENGINE_URL must point at the deployed FastAPI engine, e.g.
+#   https://<your-name>-devloop-api.hf.space
+# Set it in the Space's variables; it defaults to the compose service name.
+# MaxRAMPercentage keeps the JVM inside the free tier's memory ceiling.
+CMD ["sh", "-c", "java -XX:MaxRAMPercentage=70 -jar app.jar --server.port=${PORT:-7860}"]

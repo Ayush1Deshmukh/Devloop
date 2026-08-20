@@ -1,0 +1,21 @@
+[flake8]
+max-line-length = 127
+max-complexity = 15
+
+# venv/target are vendored build output.
+# solution.py, test_solution.py and test_injection.py are the agent's own
+# scratch artifacts — LLM output that is overwritten on every run, and in
+# test_injection.py's case deliberately vulnerable demo code. Linting them
+# reports on the model's style, not this project's.
+extend-exclude =
+    venv,
+    target,
+    __pycache__,
+    solution.py,
+    test_solution.py,
+    test_injection.py
+
+per-file-ignores =
+# The design system is one embedded CSS block; its Google Fonts @import is a
+# single unsplittable URL.
+    app.py:E501

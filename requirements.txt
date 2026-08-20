@@ -1,9 +1,17 @@
+# Runtime dependencies. Kept lean because free hosts (Streamlit Community Cloud,
+# Hugging Face Spaces) cap image/disk size and time out on slow installs.
+# Floors are set to the versions this project is actually tested against —
+# `langgraph>=0.0.10` previously allowed a 4-year-old API to resolve.
+
 # --- Core AI & Orchestration ---
-langchain-google-genai>=1.0.0
-langchain-core>=0.1.0
-langgraph>=0.0.10
-google-genai>=0.3.0
-google-generativeai>=0.4.0
+langchain-google-genai>=2.0.0
+langchain-core>=0.3.0
+langgraph>=0.2.0
+
+# NOTE: google-genai and google-generativeai were removed from runtime.
+# Nothing imports google-genai, and google-generativeai is only used by the
+# local diagnostic check_models.py — see requirements-dev.txt. Both pull heavy,
+# conflicting protobuf/grpc pins, which is a classic free-tier install failure.
 
 # --- API Framework (v2.0 Architecture) ---
 fastapi>=0.109.0
@@ -23,6 +31,8 @@ streamlit>=1.30.0
 python-dotenv
 
 # --- Testing & Security (The "Self-Healing" Engine) ---
+# These are RUNTIME deps, not dev-only: the agent shells out to pytest to verify
+# generated code and to bandit to scan it.
 pytest>=7.0.0
-bandit>=1.7.0  # Critical for SecOps Node
-httpx          # Required for API testing
+bandit>=1.7.0
+httpx

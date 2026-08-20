@@ -42,6 +42,8 @@ app.include_router(generation.router, prefix=settings.API_V1_STR, tags=["Generat
 app.add_route("/metrics", metrics_endpoint)
 
 # 5. Health Check
+
+
 @app.get("/health")
 def health_check():
     return {
@@ -49,6 +51,7 @@ def health_check():
         "version": settings.VERSION,
         "llm_model": settings.LLM_MODEL
     }
+
 
 @app.get("/")
 def root():

@@ -7,8 +7,10 @@ services:
     container_name: devloop-gateway
     ports:
       - "8080:8080"
+    restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     networks:
       - devloop-net
 
@@ -23,10 +25,22 @@ services:
     environment:
       - REDIS_URL=redis://devloop-redis:6379/0  # Uses service name for discovery
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}        # PULLS FROM .ENV (No hardcoding!)
-      - LLM_MODEL=gemini-1.5-flash
+      - LLM_MODEL=${LLM_MODEL:-gemini-2.0-flash}
+      - LLM_BACKUP_MODEL=${LLM_BACKUP_MODEL:-gemini-2.5-flash}
+      - DEVLOOP_MAX_ITERATIONS=${DEVLOOP_MAX_ITERATIONS:-5}
+      - SANDBOX_CONTAINER_NAME=devloop-sandbox
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     depends_on:
-      - redis
-      - sandbox
+      redis:
+        condition: service_healthy
+      sandbox:
+        condition: service_started
     volumes:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -37,6 +51,12 @@ services:
   redis:
     image: redis:alpine
     container_name: devloop-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     networks:
       - devloop-net
     volumes:
@@ -48,8 +68,43 @@ services:
       context: .
       dockerfile: docker/Dockerfile.sandbox
     container_name: devloop-sandbox
+    restart: unless-stopped
     volumes:
       - .:/workspace
+    networks:
+      - devloop-net
+
+  # 5. NEURAL CONSOLE (Streamlit UI)
+  # The README told you to open localhost:8501, but nothing in this file ever
+  # served it. Reuses the engine image — it already has streamlit and every
+  # dependency — and just runs a different command.
+  ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: devloop-ui
+    command: >
+      streamlit run app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.headless=true
+    ports:
+      - "8501:8501"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gemini-2.0-flash}
+      - LLM_BACKUP_MODEL=${LLM_BACKUP_MODEL:-gemini-2.5-flash}
+      - DEVLOOP_MAX_ITERATIONS=${DEVLOOP_MAX_ITERATIONS:-5}
+      - SANDBOX_CONTAINER_NAME=devloop-sandbox
+    restart: unless-stopped
+    depends_on:
+      sandbox:
+        condition: service_started
+    volumes:
+      - .:/app
+      # The UI runs the LangGraph agent in-process, so it needs the same socket
+      # access as the engine to execute generated tests in the sandbox container.
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - devloop-net
 

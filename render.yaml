@@ -1,0 +1,57 @@
+# Render Blueprint — deploys the Java gateway and the Python engine together on
+# the free plan. Render, unlike Hugging Face Spaces, can build a Dockerfile from
+# an arbitrary path, which is why the gateway lives here.
+#
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+#
+# Free-plan reality: instances sleep after ~15 minutes idle and cold-start in
+# roughly 50s. Nothing breaks, the first request after a nap is just slow.
+
+services:
+  # --- Spring Boot Gateway (public entry point) ---
+  - type: web
+    name: devloop-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/Dockerfile.hf-gateway
+    dockerContext: .
+    healthCheckPath: /api/v1/agent/health
+    envVars:
+      # Render injects PORT; application.properties already reads it.
+      # `hostport` yields a scheme-less "host:port". AgentController.normalizeBaseUrl
+      # adds https:// for it — without that, every gateway call 502'd on
+      # "URI is not absolute".
+      - key: DEVLOOP_ENGINE_URL
+        fromService:
+          type: web
+          name: devloop-api
+          property: hostport
+      - key: DEVLOOP_ENGINE_TIMEOUT
+        value: "120"
+
+  # --- FastAPI AI Engine ---
+  - type: web
+    name: devloop-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      # Set this in the Render dashboard — never commit it.
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: gemini-2.0-flash
+      - key: LLM_BACKUP_MODEL
+        value: gemini-2.5-flash
+      # Each iteration is an LLM call; keep the budget small on a free plan.
+      - key: DEVLOOP_MAX_ITERATIONS
+        value: "3"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "10"
+      # Paste your free Upstash rediss:// URL here via the dashboard.
+      # If unset, the rate limiter degrades to its in-memory counter, which is
+      # per-instance but still protects your Gemini quota.
+      - key: REDIS_URL
+        sync: false

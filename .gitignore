@@ -18,3 +18,16 @@ mvnw.cmd
 # Infrastructure & OS
 .DS_Store
 redis_data/
+
+# Streamlit secrets (never commit)
+.streamlit/secrets.toml
+
+# Agent scratch artifacts. These are regenerated on every run, so tracking them
+# left the working tree permanently dirty and produced meaningless diffs of LLM
+# output. pytest.ini already excludes them from collection.
+solution.py
+test_solution.py
+test_injection.py
+
+# Local agent/editor tooling
+.claude/

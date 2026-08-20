@@ -1,33 +1,39 @@
-import os
-import google.generativeai as genai
+"""Lists the Gemini models your GOOGLE_API_KEY can actually use.
+
+Previously this used `google.generativeai`, a package Google has fully retired —
+importing it printed a FutureWarning and it was the only reason that dependency
+existed. It now calls the same REST diagnostic the Streamlit sidebar uses, so
+there is one implementation of "is this key OK?" instead of two.
+"""
+
+import sys
+
 from dotenv import load_dotenv
 
-# Load env variables
+from logic import get_owner_api_key, verify_api_key
+
 load_dotenv()
 
-api_key = os.getenv("GOOGLE_API_KEY")
+api_key = get_owner_api_key()
 if not api_key:
-    print("❌ Error: GOOGLE_API_KEY not found in environment variables.")
-    exit()
+    print("❌ GOOGLE_API_KEY is not set. Add it to your .env file.")
+    sys.exit(1)
 
-genai.configure(api_key=api_key)
+print("🔍 Checking which models this API key can use...")
+print("-" * 52)
 
-print(f"🔍 Checking available models for your API key...")
-print("-" * 40)
+ok, message, models = verify_api_key(api_key)
+# The message carries Markdown emphasis for the Streamlit sidebar; strip it
+# so a terminal doesn't show literal **asterisks**.
+message = message.replace("**", "")
 
-try:
-    count = 0
-    for m in genai.list_models():
-        if 'generateContent' in m.supported_generation_methods:
-            print(f"✅ AVAILABLE: {m.name}")
-            count += 1
-    
-    if count == 0:
-        print("⚠️ No models found! Your API Key might be invalid or have no permissions.")
-    else:
-        print("-" * 40)
-        print(f"✨ Found {count} usable models.")
-        print("👉 Use one of the names above in your logic.py file.")
+if not ok:
+    print(f"❌ {message}")
+    sys.exit(1)
 
-except Exception as e:
-    print(f"❌ API Error: {e}")
+for name in models:
+    print(f"✅ {name}")
+
+print("-" * 52)
+print(f"✨ {message}")
+print("👉 Set LLM_MODEL in .env to one of the names above.")

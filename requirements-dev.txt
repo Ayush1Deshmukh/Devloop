@@ -1,0 +1,8 @@
+# Local development and diagnostics only — never installed on the free hosts.
+-r requirements.txt
+
+# NOTE: google-generativeai was removed. It is fully retired by Google and was
+# only used by check_models.py, which now calls the REST endpoint directly.
+
+# Linting used by CI.
+flake8>=7.0.0

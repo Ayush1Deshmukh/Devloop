@@ -34,10 +34,15 @@ print("🚀 Initializing DevLoop v2.0 Architecture...")
 # Create Directories
 for folder in structure:
     os.makedirs(folder, exist_ok=True)
-    # Create __init__.py to make it a Python package
-    with open(f"{folder}/__init__.py", "w") as f:
-        pass
-    print(f"✅ Created directory: {folder}")
+    # Create __init__.py to make it a Python package.
+    # "w" unconditionally TRUNCATED every existing __init__.py, so re-running
+    # this one-time scaffold silently emptied the real packages. Only create it
+    # when it is genuinely absent.
+    init_path = f"{folder}/__init__.py"
+    if not os.path.exists(init_path):
+        with open(init_path, "w"):
+            pass
+    print(f"✅ Ensured directory: {folder}")
 
 # Create Files
 for file in files:

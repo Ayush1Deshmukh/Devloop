@@ -1,0 +1,61 @@
+# Without this file every Dockerfile's `COPY . .` shipped a 546MB build context
+# AND baked .env — including the live GOOGLE_API_KEY — into the published image.
+# Anyone who pulled the image could read the key out of the layer.
+
+# --- Secrets: never allow these into an image layer ---
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# --- Local virtualenvs (497MB, and Linux images must build their own wheels) ---
+venv/
+.venv/
+env/
+
+# --- Build output ---
+target/
+*.jar
+*.class
+build/
+dist/
+*.egg-info/
+
+# --- Python caches ---
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- VCS & tooling ---
+.git/
+.gitignore
+.github/
+.devcontainer/
+.claude/
+.flake8
+
+# --- Docs & media: 2.6MB of screenshots/GIF that no runtime reads ---
+*.md
+!README.md
+demoo.gif
+*.png
+*.jpg
+
+# --- Test suite: not needed in a runtime image ---
+tests/
+
+# --- Agent scratch artifacts (regenerated at runtime) ---
+solution.py
+test_solution.py
+test_injection.py
+
+# --- Dev-only scripts ---
+setup_v2.py
+debug_ai.py
+check_models.py
+requirements-dev.txt
+
+# --- OS noise ---
+.DS_Store
