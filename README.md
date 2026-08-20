@@ -1,4 +1,9 @@
-# ⚡ DevLoop: Autonomous DevSecOps Architect (Enterprise Edition)
+<div align="center">
+
+# <img src="https://user-images.githubusercontent.com/74038190/216122041-518ac897-8d92-4c6b-9b3f-ca01dcaf38ee.png" width="35"> ⚡ DevLoop: Autonomous DevSecOps Architect <img src="https://user-images.githubusercontent.com/74038190/216122041-518ac897-8d92-4c6b-9b3f-ca01dcaf38ee.png" width="35">
+
+<br><br>
+</div>
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://devloop-4btrpio39tggj8yvpnyt2q.streamlit.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -6,76 +11,128 @@
 [![Java 17](https://img.shields.io/badge/Java-17-red.svg)](https://www.oracle.com/java/technologies/downloads/)
 [![Powered by LangGraph](https://img.shields.io/badge/Powered%20by-LangGraph-orange)](https://langchain-ai.github.io/langgraph/)
 
-> **The "Self-Healing" Microservices Code Engine.**  
-> DevLoop is an agentic AI system that autonomously writes, tests, secures, and fixes software. Now upgraded to a **Polyglot Microservices Architecture** for enterprise-scale reliability.
+> **The Self-Healing Microservices Code Engine**  
+> DevLoop is a distributed, agentic AI platform that autonomously **architects, writes, tests, secures, executes, and repairs software** in a continuous feedback loop.  
+> Designed as a **Polyglot, Enterprise-Ready Microservices Platform** built for scalability, fault isolation, and production resilience.
 
 ---
 
-## 🎥 System Demonstration
+# 🎯 Vision
+
+DevLoop represents the next evolution of software engineering:
+
+- ✅ AI-Driven Test-First Development  
+- ✅ Autonomous Secure Coding & Static Analysis  
+- ✅ Self-Debugging via Stack Trace Reasoning  
+- ✅ Ephemeral, Containerized Execution  
+- ✅ Distributed Microservices Architecture  
+
+DevLoop doesn’t just generate code — it **reasons in cycles**, evaluates failure states, and iteratively improves until convergence.
+
+---
+
+# 🎥 System Demonstration
 
 <div align="center">
-  <img src="demoo.gif" alt="DevLoop Autonomous Coding Demo" width="100%">
-  <p><em>Watch the agent autonomously write code, detect failures, and self-correct in real-time.</em></p>
+  <img src="devloop demo.gif" alt="DevLoop Autonomous Coding Demo" width="100%">
+  <p><em>Observe DevLoop generating tests, implementing logic, detecting runtime failures, scanning for vulnerabilities, and autonomously correcting errors — until all criteria pass.</em></p>
 </div>
 
 <br>
 
 <div align="center">
-  
-**[🔴 LIVE DEMO → Access the Neural Console](https://devloop-4btrpio39tggj8yvpnyt2q.streamlit.app/)**
+
+### 🔴 **[LIVE DEMO → Access the Neural Console](https://devloop-4btrpio39tggj8yvpnyt2q.streamlit.app/)**
 
 </div>
 
 ---
-
-## 🚀 The Evolution: Why Microservices?
-
-Modern AI systems require **Separation of Concerns**. DevLoop has evolved from a single script into a distributed system:
-
-| 🏗️ Service | Technology | Responsibility |
-|:---:|:---:|:---|
-| **API Gateway** | **Spring Boot** | Enterprise ingress, request routing, and security |
-| **AI Engine** | **FastAPI** | LangGraph orchestration and LLM state management |
-| **Memory** | **Redis** | Persistence of agent states and rate-limiting |
-| **Sandbox** | **Docker** | Isolated, secure execution of generated artifacts |
-| **Neural Console** | **Streamlit** | Operator UI for launching and watching runs |
-
 ---
 
-## 📸 Screenshots
+# 📸 Interface Preview
 
 <div align="center">
 
-### 🖥️ Command Center Dashboard
-<img src="Screenshot 1.png" alt="DevLoop Dashboard" width="90%">
-<p><i>Cyberpunk-themed interface with real-time terminal logs and glassmorphism UI</i></p>
+## 🖥️ Backend Interface (AI Engine + Gateway)
+
+<img src="Screenshot 4.png" alt="DevLoop Backend Interface" width="95%">
+
+<p><em>
+Backend service monitoring view showing:
+<br>• API request handling (Spring Boot Gateway)
+<br>• LangGraph workflow execution logs
+<br>• Redis state interactions
+<br>• Sandbox execution output streams
+<br>• Iteration loop tracking
+</em></p>
 
 <br>
+<br>
 
-### 🛡️ Security Audit Report
-<img src="screenshot 2.png" alt="Security Audit" width="90%">
-<p><i>Automated vulnerability detection using Bandit static analysis</i></p>
+## 🎨 Frontend Interface (Neural Console)
+
+<img src="Screenshot 5.png" alt="DevLoop Frontend Interface 1" width="95%">
+<br><br>
+<img src="Screenshot 6.png" alt="DevLoop Frontend Interface 2" width="95%">
+
+<p><em>
+Cyberpunk-themed Neural Console built with Streamlit:
+<br>• Real-time agent reasoning logs
+<br>• Generated code viewer
+<br>• Test results & coverage reports
+<br>• Security vulnerability dashboard
+<br>• Loop iteration counter & status tracker
+</em></p>
 
 </div>
 
 ---
+# 🚀 Why Microservices? Architectural Evolution
 
-## 🏗️ System Architecture
+The original monolithic design limited scalability and fault isolation.  
+DevLoop evolved into a distributed architecture to achieve:
+
+### ✅ Separation of Concerns  
+Each service owns a clearly defined responsibility.
+
+### ✅ Fault Isolation  
+Sandbox crashes never impact orchestration or ingress.
+
+### ✅ Horizontal Scalability  
+AI Engine instances scale independently.
+
+### ✅ Security Hardening  
+Generated code never executes in orchestration containers.
+
+---
+
+# 🏗️ Service Overview
+
+| 🏗️ Service | Technology | Responsibility | Why It Matters |
+|------------|------------|---------------|----------------|
+| **API Gateway** | Spring Boot 3.x (Java 17) | Authentication, routing, validation, ingress control | Enterprise-grade reliability |
+| **AI Engine** | FastAPI (Python 3.11) | LangGraph orchestration & LLM workflows | Async + AI ecosystem flexibility |
+| **Memory Layer** | Redis | Agent state persistence & caching | Enables cyclic reasoning |
+| **Execution Sandbox** | Docker | Secure artifact execution | Zero-trust isolation |
+
+---
+
+# 🏗️ Deep System Architecture
 
 ```mermaid
 graph TD
-    User[👤 User] -->|POST 8080| GW[🛡️ Spring Boot Gateway]
-    GW -->|REST Call| API[🧠 FastAPI AI Engine]
-    API -->|Manage State| Redis[(💾 Redis Cache)]
-    API -->|Iterative Build| Agent[👨‍💻 LangGraph Agent]
-    Agent -->|Execute Code| Box[🐳 Docker Sandbox]
+    User[👤 User] --->|HTTP POST| GW[🛡️ Spring Boot Gateway]
+    GW -->|Validated Call| API[🧠 FastAPI AI Engine]
+    API -->|Read/Write| Redis[(💾 Redis Cache)]
+    API -->|Invoke Workflow| Agent[👨‍💻 LangGraph Supervisor]
+    Agent -->|Generate Artifacts| Box[🐳 Docker Sandbox]
     
-    Box -->|Feedback| Agent
-    Agent -->|Result| API
-    API -->|Final Response| GW
-    GW -->|Success| User
+    Box -->|Execution Logs| Agent
+    Agent -->|Decision Engine| API
+    API -->|Response DTO| GW
+    GW -->|JSON Response| User
 
-    subgraph "Docker Network"
+    subgraph Docker Network
     GW
     API
     Redis
@@ -85,72 +142,96 @@ graph TD
 
 ---
 
-## 🔄 The Autonomous Self-Healing Loop
+# 🔄 The Autonomous Self-Healing Loop
 
-| Step | Agent | Action |
-|------|-------|--------|
-| 1️⃣ | Architect | Analyzes objective → Writes failing pytest unit tests (TDD) |
-| 2️⃣ | Developer | Writes implementation code to pass those tests |
-| 3️⃣ | SecOps | Scans code with Bandit for vulnerabilities (SQLi, Shell injection, etc.) |
-| 4️⃣ | Tester | Executes code in sandboxed environment |
-| 🔁 | Self-Correction | If tests fail OR vulnerabilities found → Loop back to Developer |
+| Step | Agent | Technical Action |
+|------|--------|-----------------|
+| 1️⃣ | Architect | Converts objective → Generates failing `pytest` tests (TDD) |
+| 2️⃣ | Developer | Writes implementation code to satisfy tests |
+| 3️⃣ | SecOps | Runs static analysis (Bandit / SpotBugs) |
+| 4️⃣ | Tester | Executes in sandbox & captures runtime logs |
+| 🔁 | Supervisor | Analyzes outputs → Loops until all checks pass |
+
+Loop termination criteria:
+
+- ✅ All tests pass  
+- ✅ No vulnerabilities detected  
+- ✅ Clean execution logs  
+- ✅ Iteration limit not exceeded  
 
 ---
 
-## 🛠️ Tech Stack
+# 🧠 LangGraph Orchestration Model
+
+DevLoop leverages **LangGraph’s cyclic state machine model**:
+
+- Each agent = Node  
+- Conditional edges = State transitions  
+- Redis-backed shared memory  
+- Deterministic multi-agent reasoning  
+
+This enables structured reasoning beyond single-shot prompting.
+
+---
+
+# 🛠️ Tech Stack
 
 | Category | Technology |
 |----------|------------|
-| Orchestration | LangGraph — Cyclic State Management |
-| Backend (Gateway) | Java 17, Spring Boot 3.x |
-| Backend (AI) | Python 3.11, FastAPI |
-| LLM | Google Gemini 2.0 Flash (2.5 Flash as quota fallback) |
-| Infrastructure | Docker, Docker Compose, Redis |
-| Frontend | Streamlit + Custom Glassmorphism UI |
+| Orchestration | LangGraph |
+| Gateway | Java 17, Spring Boot 3.x, Spring Security |
+| AI Engine | Python 3.11, FastAPI, Uvicorn |
+| LLM | Google Gemini 2.5 Flash (3.5 Flash as fallback) |
+| Infrastructure | Docker, Docker Compose |
+| Cache | Redis |
+| Security | Bandit, SpotBugs |
+| Testing | pytest, Coverage.py |
+| Frontend | Streamlit |
 
 ---
 
-## 📂 Project Structure
+# 📂 Project Structure
 
 ```plaintext
 DevLoop/
-├── src/main/java/       # 🛡️ Gateway — Spring Boot Java Source
-├── app/                 # 🧠 AI Engine — Python FastAPI Source
-│   ├── core/agents/     # LangGraph node definitions
-│   ├── api/routes/      # Endpoint logic
-│   └── main.py          # FastAPI Entry Point
-├── docker/              # 📦 Infrastructure — Dockerfiles for Java/Python/Sandbox
-├── docker-compose.yml   # 🕸️ Orchestrator — Multi-container networking
-├── pom.xml              # 📋 Maven Dependencies
-├── requirements.txt     # 📋 Python Dependencies
-├── .env.example         # 🔑 Secret Configuration Template
-└── README.md            # 📖 Documentation
+│
+├── src/main/java/                 # Spring Boot Gateway
+├── app/                           # FastAPI AI Engine
+│   ├── core/agents/               # Architect, Developer, SecOps, Tester
+│   ├── core/workflow/             # LangGraph Orchestration
+│   ├── sandbox/                   # Docker Execution Layer
+│   └── main.py                    # FastAPI Entry
+│
+├── docker/                        # Dockerfiles
+├── docker-compose.yml             # Multi-container network
+├── pom.xml                        # Maven configuration
+├── requirements.txt               # Python dependencies
+└── .env.example                   # Secrets template
 ```
 
 ---
 
-## ⚡ Quick Start
+# ⚡ Quick Start
 
-### 0️⃣ Get a Gemini API key
+## 0️⃣ Get a Gemini API key
 
-Create one at **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**, then:
+Create one at **[aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)**.
 
 ```bash
-cp .env.example .env     # then add your GOOGLE_API_KEY
+cp .env.example .env     # then paste your key into GOOGLE_API_KEY
 ```
 
-> **Check your key before your first run.** Launch the UI and press
-> **🩺 Test this key** in the sidebar. It calls Google's ListModels endpoint and
-> tells you exactly what is wrong — suspended key, invalid key, disabled API, or
-> a retired model name — instead of failing halfway through a run. It also prints
-> every model your key can actually use, which is what `LLM_MODEL` must be set to.
+> **Verify it before you rely on it.** Launch the UI and press **🩺 Test this
+> key** in the sidebar, or run `python check_models.py`. Both call Google's
+> ListModels endpoint and tell you exactly what's wrong — suspended, invalid,
+> wrong project — instead of failing silently mid-run.
 
 ---
 
-### 1️⃣ Run the UI only (no Docker — fastest path)
+## 1️⃣ UI only — fastest path, no Docker
 
-This is all you need to see the agent work. Generated code runs in the rlimit
-sandbox rather than a container.
+Enough to see the agent work end-to-end. Generated code runs in an rlimited
+temp dir rather than a container.
 
 ```bash
 python -m venv venv && source venv/bin/activate
@@ -162,76 +243,92 @@ Open **http://localhost:8501**.
 
 ---
 
-### 2️⃣ Or run the full stack (Docker sandbox + Gateway + Redis)
-
-
-Deploy the entire 5-container stack (gateway, engine, UI, Redis, sandbox)
-with a single command. The gateway jar is built inside its image, so you do
-not need Maven installed:
+## 2️⃣ Full stack — Gateway + Engine + UI + Redis + Sandbox
 
 ```bash
 docker compose up --build -d
 ```
 
----
+The gateway's jar is built inside its own image, so you don't need Maven
+installed locally. Verify:
 
-### 3️⃣ Access the full stack
+```bash
+docker compose ps
+```
 
-- Gateway API: http://localhost:8080/api/v1/agent/execute  
-- Neural Console (UI): http://localhost:8501  
-- Engine docs: http://localhost:8000/docs  
+**Access:**
 
----
-
-## ☁️ Deploying for Free
-
-Full step-by-step guide: **[DEPLOYMENT.md](DEPLOYMENT.md)**
-
-| Component | Free host |
+| Service | URL |
 |---|---|
-| Neural Console | Streamlit Community Cloud |
-| AI Engine | Hugging Face Spaces / Render |
-| Gateway | Render (`render.yaml` blueprint included) |
-| Redis | Upstash |
+| Gateway API | `POST http://localhost:8080/api/v1/agent/execute` |
+| Neural Console (UI) | http://localhost:8501 |
+| Engine docs | http://localhost:8000/docs |
 
-> **One honest caveat:** the Docker sandbox is *local-only*. No free host mounts
-> `/var/run/docker.sock`, so a deployed instance automatically falls back to an
-> OS-level sandbox — throwaway temp dir, CPU/memory/process/file-size rlimits,
-> wall-clock timeout, and an environment scrubbed of your API key. Strong, but
-> not kernel-namespace isolation. Details in [DEPLOYMENT.md](DEPLOYMENT.md).
-
-The public demo gives each visitor a few free runs on the maintainer's key, then
-invites them to paste their own — so the demo stays live regardless of traffic.
+With the sandbox container running, generated tests execute inside it
+automatically — `tools.py` probes with `docker inspect` and only falls back to
+the rlimit sandbox when Docker is genuinely unavailable.
 
 ---
 
-## 🌟 Key Features
+# 🔐 Security Model
 
-- 🏗️ **Polyglot Architecture** — Java stability for ingress, Python flexibility for AI.  
-- 🔄 **Autonomous TDD** — Tests written before implementation.  
-- 🛡️ **Security-First** — Every iteration scanned for vulnerabilities using Bandit.  
-- 🔁 **Self-Healing** — Reads stack traces, fixes its own bugs in real-time.  
-- 🐳 **Sandboxed Execution** — High-security code execution in isolated containers.  
+- 🔒 No generated code executes on host machine  
+- 🐳 Ephemeral container execution  
+- 🛡️ Static security scanning before runtime  
+- 📊 Resource limits (CPU / Memory quotas)  
+- 🚦 Rate limiting via Redis  
+- 🔁 Iteration cap prevents infinite loops  
 
 ---
 
-## 🧯 Troubleshooting
+# 🌟 Enterprise Features
+
+- 🏗️ Polyglot Microservices Architecture  
+- 🔄 Autonomous Test-Driven Development  
+- 🛡️ Continuous Static Security Analysis  
+- 🔁 Self-Healing Debug Loop  
+- 🐳 Sandboxed Zero-Trust Execution  
+- 💾 Stateful Agent Memory  
+- ⚡ Horizontally Scalable AI Engine  
+
+---
+
+# 📈 Roadmap
+
+- Kubernetes Deployment  
+- Prometheus + Grafana Observability  
+- CI/CD Pipeline Integration  
+- Multi-LLM Support  
+- OAuth2 / JWT Authentication  
+
+---
+
+# 🧯 Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `Sequence aborted` immediately, log says the key is **suspended** | Google suspended that key's project. It cannot be revived. | Create a fresh key, ideally in a **new** Cloud project. |
-| `Sequence aborted`, log says the model was rejected | `LLM_MODEL` names a retired model (e.g. any `gemini-1.5-*`). | Press **🩺 Test this key** to list usable models; set `LLM_MODEL` to one of them. |
+| Run aborts immediately, log says the key is **suspended** | Google suspended the key's Cloud *project* — usually from a key leaking into a public repo. A new key in the *same* project inherits the suspension. | Create a **new Cloud project**, then a key inside it, at aistudio.google.com/app/apikey. |
+| Run aborts, log says the model was rejected | `LLM_MODEL` names a retired or unavailable model. | Press **🩺 Test this key** (or run `check_models.py`) to list models your key can actually use. |
 | Sidebar shows `SANDBOX rlimit` instead of `Docker` | The `devloop-sandbox` container isn't running. | `docker compose up -d`, or accept rlimit isolation for local use. |
-| Security tab always says "Scanner unavailable" | Bandit isn't installed in the interpreter running the app. | `pip install -r requirements.txt` inside the same venv you launch Streamlit from. |
+| Security tab always says "Scanner unavailable" | Bandit isn't installed in the interpreter running the app. | `pip install -r requirements.txt` in the same venv you launch Streamlit from. |
+| Deployed gateway returns 502 on every call | `DEVLOOP_ENGINE_URL` has no scheme (Render's `hostport` binding omits it). | Already handled — `AgentController.normalizeBaseUrl()` adds `https://` automatically. |
+
+Full free-hosting walkthrough, cold-start behavior, and a pre-deploy checklist
+are in **[DEPLOYMENT.md](DEPLOYMENT.md)**.
 
 ---
 
-## 👨‍💻 Author
+# 👨‍💻 Author
 
 <div align="center">
 
 **Ayush Deshmukh**  
-Third-Year Computer Science & Engineering  
+Computer Science & Engineering  
+
+Passionate about AI, DevSecOps & Autonomous Systems  
+
+🔗 GitHub: https://github.com/ayushdeshmukh  
+🔗 LinkedIn: https://linkedin.com/in/ayushdeshmukh  
 
 </div>
 
@@ -239,8 +336,8 @@ Third-Year Computer Science & Engineering
 
 <div align="center">
 
-🚀 Built for the Future of Agentic Software Engineering  
+🚀 Building the Future of Autonomous Software Engineering  
 
-⭐ Star this repo if you find it useful!
+⭐ Star this repository if DevLoop accelerates your workflow  
 
 </div>
